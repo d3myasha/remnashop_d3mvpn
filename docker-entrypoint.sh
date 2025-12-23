@@ -68,4 +68,4 @@ else
     echo "Uvicorn will run without reload"
 fi
 
-exec uvicorn src.__main__:application --host "${APP_HOST}" --port "${APP_PORT}" --factory --use-colors ${UVICORN_RELOAD_ARGS}
+exec uvicorn src.__main__:application --host "${APP_HOST:-0.0.0.0}" --port "${APP_PORT:-5000}" --factory --use-colors ${UVICORN_RELOAD_ARGS}

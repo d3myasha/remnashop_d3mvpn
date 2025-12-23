@@ -9,7 +9,14 @@ from src.lifespan import lifespan
 
 
 def get_app(config: AppConfig, dispatcher: Dispatcher) -> FastAPI:
-    app: FastAPI = FastAPI(lifespan=lifespan)
+    app: FastAPI = FastAPI(
+        lifespan=lifespan,
+        docs_url=None,
+        redoc_url=None,
+        openapi_url=None,
+        include_in_schema=False,
+    )
+
     app.add_middleware(
         CORSMiddleware,
         allow_origins=config.origins,

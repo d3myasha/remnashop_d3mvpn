@@ -8,8 +8,8 @@ from fastapi import FastAPI
 from loguru import logger
 
 from src.api.endpoints import TelegramWebhookEndpoint
-from src.services.command import CommandService
-from src.services.webhook import WebhookService
+from src.application.use_cases.command import CommandUseCase
+from src.application.use_cases.webhook import WebhookUseCase
 
 
 @asynccontextmanager
@@ -19,24 +19,23 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     container: AsyncContainer = app.state.dishka_container
 
     async with container(scope=Scope.REQUEST) as startup_container:
-        webhook_service: WebhookService = await startup_container.get(WebhookService)
-        command_service: CommandService = await startup_container.get(CommandService)
+        webhook: WebhookUseCase = await startup_container.get(WebhookUseCase)
+        command: CommandUseCase = await startup_container.get(CommandUseCase)
 
     await startup_container.close()
 
     allowed_updates = dispatcher.resolve_used_update_types()
-    webhook_info: WebhookInfo = await webhook_service.setup(allowed_updates)
+    webhook_info: WebhookInfo = await webhook.setup(allowed_updates)
 
-    if webhook_service.has_error(webhook_info):
+    if webhook.has_error(webhook_info):
         logger.critical(f"Webhook has a last error message: '{webhook_info.last_error_message}'")
 
-    await command_service.setup()
+    await command.setup()
     await telegram_webhook_endpoint.startup()
 
     yield
 
     await telegram_webhook_endpoint.shutdown()
-    await command_service.delete()
-    await webhook_service.delete()
-
+    await command.delete()
+    await webhook.delete()
     await container.close()

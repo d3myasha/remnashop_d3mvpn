@@ -16,7 +16,7 @@ class BotProvider(Provider):
     bg_manager_factory = from_context(provides=BgManagerFactory)
 
     @provide
-    async def get_bot(self, config: AppConfig) -> AsyncIterable[Bot]:
+    async def bot(self, config: AppConfig) -> AsyncIterable[Bot]:
         logger.debug("Initializing Bot instance")
 
         async with Bot(

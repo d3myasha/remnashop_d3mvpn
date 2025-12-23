@@ -11,7 +11,7 @@ class RedisProvider(Provider):
     scope = Scope.APP
 
     @provide
-    async def get_redis_client(self, config: AppConfig) -> AsyncGenerator[Redis, None]:
+    async def redis(self, config: AppConfig) -> AsyncGenerator[Redis, None]:
         logger.debug("Connecting to Redis")
         connection_pool = ConnectionPool.from_url(url=config.redis.dsn)
         client = Redis(connection_pool=connection_pool)

@@ -69,6 +69,7 @@ lint.select = [
 lint.ignore = ["N805"]
 exclude = ["venv", ".venv", ".idea"]
 
+
 [tool.mypy]
 packages = ["src"]
 plugins = ["sqlalchemy.ext.mypy.plugin", "pydantic.mypy"]

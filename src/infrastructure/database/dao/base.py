@@ -1,21 +1,20 @@
 from typing import Any, Optional, Type, TypeVar, Union, cast
 
+from loguru import logger
 from sqlalchemy import ColumnExpressionArgument, delete, func, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import InstrumentedAttribute
 
-from src.infrastructure.database.models.sql import BaseSql
+from src.infrastructure.database.models import BaseSQL
 
-T = TypeVar("T", bound=BaseSql)
+T = TypeVar("T", bound=BaseSQL)
 ModelType = Type[T]
 
 ConditionType = ColumnExpressionArgument[Any]
 OrderByArgument = Union[ColumnExpressionArgument[Any], InstrumentedAttribute[Any]]
 
 
-class BaseRepository:
-    session: AsyncSession
-
+class BaseDAO:
     def __init__(self, session: AsyncSession) -> None:
         self.session = session
 
@@ -23,6 +22,8 @@ class BaseRepository:
         self.session.add(instance)
         await self.session.flush()
         await self.session.refresh(instance)
+
+        logger.debug(f"Instance '{instance.__class__.__name__}' created in database")
         return instance
 
     async def create_instances(self, instances: list[T]) -> list[T]:
@@ -33,13 +34,18 @@ class BaseRepository:
         await self.session.flush()
         for instance in instances:
             await self.session.refresh(instance)
+
+        logger.debug(f"Created '{len(instances)}' instances in database")
         return instances
 
     async def merge_instance(self, instance: T) -> T:
-        return await self.session.merge(instance)
+        merged = await self.session.merge(instance)
+        logger.debug(f"Instance '{instance.__class__.__name__}' merged")
+        return merged
 
     async def delete_instance(self, instance: T) -> None:
         await self.session.delete(instance)
+        logger.debug(f"Instance '{instance.__class__.__name__}' marked for deletion")
 
     async def _get_one(self, model: ModelType[T], *conditions: ConditionType) -> Optional[T]:
         result = await self.session.execute(select(model).where(*conditions))
@@ -92,14 +98,18 @@ class BaseRepository:
 
         if obj_id is not None and load_result:
             db_obj = await self.session.get(model, obj_id)
-            await self.session.refresh(db_obj)
+            if db_obj:
+                await self.session.refresh(db_obj)
+                logger.debug(f"Updated '{model.__name__}' with ID '{obj_id}'")
             return db_obj
 
         return None
 
     async def _delete(self, model: ModelType[T], *conditions: ConditionType) -> int:
         result = await self.session.execute(delete(model).where(*conditions))
-        return result.rowcount  # type: ignore[attr-defined, no-any-return]
+        count = result.rowcount  # type: ignore[attr-defined]
+        logger.debug(f"Deleted '{count}' rows from '{model.__name__}'")
+        return cast(int, count)
 
     async def _count(self, model: Type[T], *conditions: ConditionType) -> int:
         query = select(func.count()).select_from(model).where(*conditions)

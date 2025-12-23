@@ -2,24 +2,18 @@ from types import TracebackType
 from typing import Optional, Self, Type
 
 from loguru import logger
-from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
-
-from .repositories import RepositoriesFacade
+from sqlalchemy.ext.asyncio import AsyncSession
 
 
 class UnitOfWork:
-    session_pool: async_sessionmaker[AsyncSession]
-    session: Optional[AsyncSession] = None
+    _active_sessions: int = 0
 
-    repository: RepositoriesFacade
-
-    def __init__(self, session_pool: async_sessionmaker[AsyncSession]) -> None:
-        self.session_pool = session_pool
+    def __init__(self, session: AsyncSession) -> None:
+        self.session = session
 
     async def __aenter__(self) -> Self:
-        self.session = self.session_pool()
-        self.repository = RepositoriesFacade(session=self.session)
-        logger.debug(f"Opened session '{id(self.session)}'")
+        UnitOfWork._active_sessions += 1
+        logger.debug(f"SQL session started. Active sessions: '{UnitOfWork._active_sessions}'")
         return self
 
     async def __aexit__(
@@ -28,29 +22,18 @@ class UnitOfWork:
         exc_val: Optional[BaseException],
         exc_tb: Optional[TracebackType],
     ) -> None:
-        if self.session is None:
-            return
-
-        session_id = id(self.session)
         try:
-            if exc_type is None:
-                await self.commit()
-            else:
-                logger.warning(
-                    f"Exception detected '{exc_val}', rolling back session '{session_id}'"
-                )
+            if exc_type:
                 await self.rollback()
         finally:
             await self.session.close()
-            logger.debug(f"Closed session '{session_id}'")
-            self.session = None
+            UnitOfWork._active_sessions -= 1
+            logger.debug(f"SQL session closed. Active sessions: '{UnitOfWork._active_sessions}'")
 
     async def commit(self) -> None:
-        if self.session:
-            await self.session.commit()
-            logger.debug(f"Session '{id(self.session)}' committed")
+        await self.session.commit()
+        logger.debug("SQL transaction committed successfully")
 
     async def rollback(self) -> None:
-        if self.session:
-            await self.session.rollback()
-            logger.debug(f"Session '{id(self.session)}' rolled back")
+        await self.session.rollback()
+        logger.warning("SQL transaction rolled back")

@@ -3,13 +3,13 @@ from typing import Any, Iterable, Optional, Type, TypeVar
 from pydantic import BaseModel as _BaseModel
 from pydantic import ConfigDict, PrivateAttr
 
-from src.infrastructure.database.models.sql import BaseSql
+from src.infrastructure.database.models import BaseSQL
 
-SqlModel = TypeVar("SqlModel", bound=BaseSql)
-DtoModel = TypeVar("DtoModel", bound="BaseDto")
+ModelSQL = TypeVar("ModelSQL", bound=BaseSQL)
+ModelDTO = TypeVar("ModelDTO", bound="BaseDTO")
 
 
-class BaseDto(_BaseModel):
+class BaseDTO(_BaseModel):
     model_config = ConfigDict(
         extra="ignore",
         from_attributes=True,
@@ -18,9 +18,9 @@ class BaseDto(_BaseModel):
 
     @classmethod
     def from_model(
-        cls: Type[DtoModel],
-        model_instance: Optional[SqlModel],
-    ) -> Optional[DtoModel]:
+        cls: Type[ModelDTO],
+        model_instance: Optional[ModelSQL],
+    ) -> Optional[ModelDTO]:
         if model_instance is None:
             return None
 
@@ -30,13 +30,13 @@ class BaseDto(_BaseModel):
 
     @classmethod
     def from_model_list(
-        cls: Type[DtoModel],
-        model_instances: Iterable[SqlModel],
-    ) -> list[DtoModel]:
+        cls: Type[ModelDTO],
+        model_instances: Iterable[ModelSQL],
+    ) -> list[ModelDTO]:
         return [dto for model in model_instances if (dto := cls.from_model(model)) is not None]
 
 
-class TrackableDto(BaseDto):
+class TrackableDTO(BaseDTO):
     __changed_data: dict[str, Any] = PrivateAttr(default_factory=dict)
 
     def __setattr__(self, name: str, value: Any) -> None:

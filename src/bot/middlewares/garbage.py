@@ -5,7 +5,6 @@ from loguru import logger
 
 from src.core.constants import USER_KEY
 from src.core.enums import Command, MiddlewareEventType
-from src.infrastructure.database.models.dto import UserDto
 
 from .base import EventTypedMiddleware
 

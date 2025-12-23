@@ -2,8 +2,8 @@ from typing import Optional
 
 from pydantic import Field
 
-from .base import TrackableDto
+from .base import TrackableDTO
 
 
-class SettingsDto(TrackableDto):
+class SettingsDTO(TrackableDTO):
     id: Optional[int] = Field(default=None, frozen=True)

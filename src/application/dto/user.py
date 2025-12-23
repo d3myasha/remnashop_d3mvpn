@@ -6,10 +6,10 @@ from pydantic import Field, PrivateAttr
 from src.core.enums import Locale, UserRole
 from src.core.utils.time import datetime_now
 
-from .base import TrackableDto
+from .base import TrackableDTO
 
 
-class UserDto(TrackableDto):
+class UserDTO(TrackableDTO):
     _id: Optional[int] = PrivateAttr(Field(default=None, frozen=True))
     telegram_id: int
     username: Optional[str] = None

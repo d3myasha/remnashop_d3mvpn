@@ -17,7 +17,7 @@ class DatabaseProvider(Provider):
     scope = Scope.APP
 
     @provide
-    async def get_engine(self, config: AppConfig) -> AsyncIterable[AsyncEngine]:
+    async def engine(self, config: AppConfig) -> AsyncIterable[AsyncEngine]:
         logger.debug("Creating AsyncEngine")
         engine = create_async_engine(
             url=config.database.dsn,
@@ -33,15 +33,20 @@ class DatabaseProvider(Provider):
         await engine.dispose()
 
     @provide
-    def get_session_maker(self, engine: AsyncEngine) -> async_sessionmaker[AsyncSession]:
+    def session_maker(self, engine: AsyncEngine) -> async_sessionmaker[AsyncSession]:
         session_maker = async_sessionmaker(bind=engine, expire_on_commit=False)
         logger.debug("Created session maker")
         return session_maker
 
     @provide(scope=Scope.REQUEST)
-    async def get_uow(
-        self,
-        session_maker: async_sessionmaker[AsyncSession],
-    ) -> AsyncIterable[UnitOfWork]:
-        async with UnitOfWork(session_maker) as uow:
-            yield uow
+    async def provide_session(
+        self, pool: async_sessionmaker[AsyncSession]
+    ) -> AsyncIterable[AsyncSession]:
+        logger.debug(f"Attempting to get session from pool for request")
+
+        async with pool() as session:
+            logger.debug(f"Session obtained from pool")
+            yield session
+        logger.debug(f"Session returned to pool")
+
+    uow = provide(source=UnitOfWork, scope=Scope.REQUEST)

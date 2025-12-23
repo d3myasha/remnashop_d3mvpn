@@ -1,8 +1,10 @@
+import time
 from abc import ABC, abstractmethod
+from contextlib import asynccontextmanager
 from typing import Any, Awaitable, Callable, ClassVar, Final, Optional
 
 from aiogram import BaseMiddleware, Router
-from aiogram.types import ErrorEvent, TelegramObject
+from aiogram.types import TelegramObject
 from aiogram.types import User as AiogramUser
 from loguru import logger
 
@@ -17,13 +19,40 @@ DEFAULT_UPDATE_TYPES: Final[list[MiddlewareEventType]] = [
 class EventTypedMiddleware(BaseMiddleware, ABC):
     __event_types__: ClassVar[list[MiddlewareEventType]] = DEFAULT_UPDATE_TYPES
 
+    def __init__(self) -> None:
+        super().__init__()
+        self._inner_duration: float = 0.0
+
+    @asynccontextmanager
+    async def measure_inner(self) -> Any:
+        start = time.perf_counter()
+        try:
+            yield
+        finally:
+            self._inner_duration = time.perf_counter() - start
+
     async def __call__(
         self,
         handler: Callable[[TelegramObject, dict[str, Any]], Awaitable[Any]],
         event: TelegramObject,
         data: dict[str, Any],
     ) -> Any:
-        result = await self.middleware_logic(handler, event, data)
+        async def wrapped_handler(event: TelegramObject, data: dict[str, Any]) -> Any:
+            async with self.measure_inner():
+                return await handler(event, data)
+
+        start_ts = time.perf_counter()
+
+        result = await self.middleware_logic(wrapped_handler, event, data)
+
+        total_duration = time.perf_counter() - start_ts
+        pure_mw_duration = total_duration - self._inner_duration
+
+        logger.debug(
+            f"Middleware '{self.__class__.__name__}' executed in {pure_mw_duration:.4f}s "
+            f"(inner chain '{self._inner_duration:.4f}s')"
+        )
+
         return result
 
     def setup_inner(self, router: Router) -> None:
@@ -53,12 +82,10 @@ class EventTypedMiddleware(BaseMiddleware, ABC):
     ) -> Any: ...  # TODO: Implement checking performance
 
     @staticmethod
-    def _get_aiogram_user(event: TelegramObject) -> Optional[AiogramUser]:
-        if hasattr(event, "from_user"):
-            return event.from_user  # type: ignore[no-any-return]
-        elif isinstance(event, ErrorEvent):
-            if event.update.callback_query:
-                return event.update.callback_query.from_user
-            elif event.update.message:
-                return event.update.message.from_user
-        return None
+    def _get_aiogram_user(data: dict[str, Any]) -> Optional[AiogramUser]:
+        user = data.get("event_from_user")
+
+        if isinstance(user, dict):
+            return AiogramUser(**user)
+
+        return user if isinstance(user, AiogramUser) else None
