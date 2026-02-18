@@ -1,5 +1,67 @@
 ---
-title: "Тест"
+title: "Quick start"
+description: "Here is a quick guide to installing Remnashop Telegram Bot"
 ---
+<Tip>
+ Check the requirements page to get started
+</Tip>
+---
+Install Docker
+---
+Install Docker if not installed yet.
 
-фывфыв
+<Accordion title="Install Docker">
+   ```
+ sudo curl -fsSL https://get.docker.com | sh
+  ```
+</Accordion>
+---
+Step 1 – Download required files
+---
+<CodeGroup>
+```bash Create the project directory
+mkdir /opt/remnashop && cd /opt/remnashop
+```
+</CodeGroup>
+Download docker-compose.yml compose-file and .env by running these commands
+<Tabs>
+ <Tab title="The bot and panel are hosted on the same server">
+<CodeGroup>
+```bash Get docker-compose.yml file For internal panel (the bot and panel are hosted on the same server)
+curl -o docker-compose.yml https://raw.githubusercontent.com/snoups/remnashop/refs/heads/main/docker-compose.prod.internal.yml
+```
+</CodeGroup>
+<CodeGroup>
+```bash Get .env file
+curl -o .env https://raw.githubusercontent.com/snoups/remnashop/refs/heads/main/.env.example
+```
+</CodeGroup>
+ </Tab>
+ <Tab title="The bot and the panel are hosted on different servers">
+<CodeGroup>
+```bash Get docker-compose.yml file
+curl -o docker-compose.yml https://raw.githubusercontent.com/snoups/remnashop/refs/heads/main/docker-compose.prod.external.yml
+```
+</CodeGroup>
+<CodeGroup>
+```bash Get .env file
+curl -o .env https://raw.githubusercontent.com/snoups/remnashop/refs/heads/main/.env.example
+```
+</CodeGroup>
+ </Tab>
+</Tabs>
+---
+Step 2 – Configure the .env file
+---
+Generate secret keys by running the following commands
+<CodeGroup>
+```bash Generate secure keys
+sed -i "s|^APP_CRYPT_KEY=.*|APP_CRYPT_KEY=$(openssl rand -base64 32 | tr -d '\n')|" .env && sed -i "s|^BOT_SECRET_TOKEN=.*|BOT_SECRET_TOKEN=$(openssl rand -hex 64 | tr -d '\n')|" .env
+```
+</CodeGroup>
+<CodeGroup>
+```bash Generate passwords
+sed -i "s|^DATABASE_PASSWORD=.*|DATABASE_PASSWORD=$(openssl rand -hex 24 | tr -d '\n')|" .env && sed -i "s|^REDIS_PASSWORD=.*|REDIS_PASSWORD=$(openssl rand -hex 24 | tr -d '\n')|" .env
+```
+</CodeGroup>
+Now, open the .env file and update the variables:
