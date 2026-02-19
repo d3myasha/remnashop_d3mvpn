@@ -24,11 +24,24 @@ async def on_test_command(
     message: Message,
     user: UserDto,
     config: AppConfig,
+    # start_broadcast: FromDishka[StartBroadcast],
 ) -> None:
     if not PermissionPolicy.has_permission(user, Permission.COMMAND_TEST):
         raise PermissionDeniedError
 
     logger.info(f"{user.log} Test command executed")
+
+    # await start_broadcast(
+    #     user,
+    #     StartBroadcastDto(
+    #         BroadcastAudience.ALL,
+    #         MessagePayloadDto(
+    #             i18n_key="ntf-broadcast.message",
+    #             i18n_kwargs={"content": "рассылка <b>проверка</b>"},
+    #             delete_after=None,
+    #         ),
+    #     ),
+    # )
     # raise UnknownState
 
 

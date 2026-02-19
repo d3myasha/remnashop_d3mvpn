@@ -4,6 +4,7 @@ from uuid import UUID
 
 from adaptix import Retort
 from fluentogram import FluentTranslator, TranslatorHub, TranslatorRunner
+from fluentogram.exceptions import KeyNotFoundError
 from loguru import logger
 
 from src.core.utils.converters import event_to_key
@@ -27,7 +28,13 @@ class TranslatorRunnerImpl(TranslatorRunner):
 
         sanitized_data = self._sanitize_data(data)
         translated_data = self._translate_values(sanitized_data)
-        text = self._get_translation(key, **translated_data)
+        try:
+            text = self._get_translation(key, **translated_data)
+        except KeyNotFoundError:
+            if kwargs:
+                raise
+            logger.warning(f"Translation key '{key}' not found, falling back to the key itself")
+            text = key
         processed_text = self._postprocess(text)
 
         return processed_text

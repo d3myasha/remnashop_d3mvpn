@@ -109,34 +109,41 @@ class StartBroadcast(Interactor[StartBroadcastDto, UUID]):
         self,
         uow: UnitOfWork,
         broadcast_dao: BroadcastDao,
-        get_broadcast_audience_users: GetBroadcastAudienceUsers,
+        get_broadcast_audience_count: GetBroadcastAudienceCount,
     ):
         self.uow = uow
         self.broadcast_dao = broadcast_dao
-        self.get_broadcast_audience_users = get_broadcast_audience_users
+        self.get_broadcast_audience_count = get_broadcast_audience_count
 
     async def _execute(self, actor: UserDto, data: StartBroadcastDto) -> UUID:
         from src.infrastructure.taskiq.tasks.broadcast import send_broadcast_task  # noqa: PLC0415
 
-        async with self.uow:
-            users = await self.get_broadcast_audience_users(
-                actor,
-                GetBroadcastAudienceUsersDto(audience=data.audience, plan_id=data.plan_id),
-            )
+        total_count = await self.get_broadcast_audience_count.system(
+            GetBroadcastAudienceCountDto(data.audience, data.plan_id)
+        )
 
+        async with self.uow:
             task_id = uuid4()
             broadcast = BroadcastDto(
                 task_id=task_id,
                 status=BroadcastStatus.PROCESSING,
-                total_count=len(users),
+                total_count=total_count,
                 audience=data.audience,
                 payload=data.payload,
             )
             await self.broadcast_dao.create(broadcast)
             await self.uow.commit()
-            await send_broadcast_task.kicker().with_task_id(str(task_id)).kiq(broadcast, users)  # type: ignore[call-overload]
 
-        logger.info(f"{actor.log} Started broadcast '{task_id}' for '{len(users)}' users")
+            await (
+                send_broadcast_task.kicker()
+                .with_task_id(str(task_id))
+                .kiq(
+                    broadcast,
+                    data.plan_id,
+                )  # type: ignore[call-overload]
+            )
+
+        logger.info(f"{actor.log} Scheduled broadcast initialization '{task_id}'")
         return task_id
 
 
@@ -222,28 +229,32 @@ class InitializeBroadcastMessagesDto:
     messages: list[BroadcastMessageDto]
 
 
-class InitializeBroadcastMessages(Interactor[InitializeBroadcastMessagesDto, None]):
+class InitializeBroadcastMessages(
+    Interactor[InitializeBroadcastMessagesDto, list[BroadcastMessageDto]],
+):
     required_permission = None
 
     def __init__(self, uow: UnitOfWork, broadcast_dao: BroadcastDao):
         self.uow = uow
         self.broadcast_dao = broadcast_dao
 
-    async def _execute(self, actor: UserDto, data: InitializeBroadcastMessagesDto) -> None:
+    async def _execute(
+        self,
+        actor: UserDto,
+        data: InitializeBroadcastMessagesDto,
+    ) -> list[BroadcastMessageDto]:
         async with self.uow:
-            await self.broadcast_dao.add_messages(data.task_id, data.messages)
+            messages = await self.broadcast_dao.add_messages(data.task_id, data.messages)
             await self.uow.commit()
 
         logger.info(f"Initialized {len(data.messages)} messages for broadcast '{data.task_id}'")
+        return messages
 
 
 @dataclass(frozen=True)
 class UpdateBroadcastMessageStatusDto:
     task_id: UUID
-    telegram_id: int
-    status: BroadcastMessageStatus
-    message_id: int | None
-    success: bool
+    messages: list[BroadcastMessageDto]
 
 
 class UpdateBroadcastMessageStatus(Interactor[UpdateBroadcastMessageStatusDto, None]):
@@ -254,14 +265,16 @@ class UpdateBroadcastMessageStatus(Interactor[UpdateBroadcastMessageStatusDto, N
         self.broadcast_dao = broadcast_dao
 
     async def _execute(self, actor: UserDto, data: UpdateBroadcastMessageStatusDto) -> None:
+        success_count = sum(1 for m in data.messages if m.status == BroadcastMessageStatus.SENT)
+        failed_count = len(data.messages) - success_count
+
         async with self.uow:
-            await self.broadcast_dao.update_message_status(
-                task_id=data.task_id,
-                telegram_id=data.telegram_id,
-                status=data.status,
-                message_id=data.message_id,
+            await self.broadcast_dao.bulk_update_messages(data.messages)
+            await self.broadcast_dao.update_stats(
+                data.task_id,
+                success_count=success_count,
+                failed_count=failed_count,
             )
-            await self.broadcast_dao.increment_stats(data.task_id, success=data.success)
             await self.uow.commit()
 
 

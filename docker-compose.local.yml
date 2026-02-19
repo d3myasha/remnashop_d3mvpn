@@ -100,7 +100,7 @@ services:
     <<: [*build, *common, *logging, *env]
 
     command: taskiq worker src.infrastructure.taskiq.worker:worker 
-      --tasks-pattern src/infrastructure/taskiq/tasks/*.py -fsd
+      --ack-type when_received --tasks-pattern src/infrastructure/taskiq/tasks/*.py -fsd
 
     depends_on:
         remnashop-redis:

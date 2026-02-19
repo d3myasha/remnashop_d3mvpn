@@ -1,8 +1,6 @@
 from dataclasses import dataclass, field
 from typing import Optional
 
-from fluentogram.exceptions import KeyNotFoundError
-
 from src.application.common import Interactor, TranslatorRunner
 from src.application.common.dao import PlanDao, SettingsDao, SubscriptionDao
 from src.application.common.policy import Permission
@@ -46,16 +44,12 @@ class GetMenuData(Interactor[None, GetMenuDataResultDto]):
 
         settings = await self.settings_dao.get()
         is_referral_enabled = settings.referral.enable
-
         referral_url = await self.bot_service.get_referral_url(actor.referral_code)
 
         custom_buttons = []
         for button in settings.menu.buttons:
             if button.is_active and actor.role.value >= button.required_role.value:
-                try:
-                    translated_text = self.i18n.get(button.text)
-                except KeyNotFoundError:
-                    translated_text = button.text
+                translated_text = self.i18n.get(button.text)
                 button.text = translated_text
                 custom_buttons.append(button)
 

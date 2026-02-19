@@ -198,7 +198,6 @@ async def on_plan_move(
     dialog_manager: DialogManager,
     move_plan_up: FromDishka[MovePlanUp],
 ) -> None:
-    await dialog_manager.load_data()
     user: UserDto = dialog_manager.middleware_data[USER_KEY]
     await move_plan_up(user, int(dialog_manager.item_id))  # type: ignore[attr-defined]
 
@@ -515,7 +514,6 @@ async def on_duration_move(
     retort: FromDishka[Retort],
     move_duration_up: FromDishka[MoveDurationUp],
 ) -> None:
-    await dialog_manager.load_data()
     user: UserDto = dialog_manager.middleware_data[USER_KEY]
     current_plan = retort.load(dialog_manager.dialog_data[PlanDto.__name__], PlanDto)
 
@@ -536,7 +534,6 @@ async def on_duration_remove(
     notifier: FromDishka[Notifier],
     remove_plan_duration: FromDishka[RemovePlanDuration],
 ) -> None:
-    await dialog_manager.load_data()
     user: UserDto = dialog_manager.middleware_data[USER_KEY]
     duration_id = int(dialog_manager.item_id)  # type: ignore[attr-defined]
 

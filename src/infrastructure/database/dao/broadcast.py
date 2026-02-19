@@ -33,6 +33,9 @@ class BroadcastDaoImpl(BroadcastDao):
         self._convert_to_dto_list = self.conversion_retort.get_converter(
             list[Broadcast], list[BroadcastDto]
         )
+        self._convert_to_dto_messages_list = self.conversion_retort.get_converter(
+            list[BroadcastMessage], list[BroadcastMessageDto]
+        )
 
     async def create(self, broadcast: BroadcastDto) -> BroadcastDto:
         broadcast_data = self.retort.dump(broadcast)
@@ -68,19 +71,24 @@ class BroadcastDaoImpl(BroadcastDao):
         await self.session.execute(stmt)
         logger.debug(f"Broadcast task '{task_id}' status updated to '{status}'")
 
-    async def add_messages(self, task_id: UUID, messages: list[BroadcastMessageDto]) -> None:
+    async def add_messages(
+        self, task_id: UUID, messages: list[BroadcastMessageDto]
+    ) -> list[BroadcastMessageDto]:
         broadcast_id_stmt = select(Broadcast.id).where(Broadcast.task_id == task_id)
         broadcast_id = await self.session.scalar(broadcast_id_stmt)
 
         if not broadcast_id:
             logger.error(f"Failed to add messages: broadcast task '{task_id}' not found")
-            return
+            return []
 
         db_messages = [
             BroadcastMessage(**self.retort.dump(msg), broadcast_id=broadcast_id) for msg in messages
         ]
         self.session.add_all(db_messages)
+        await self.session.flush()
+
         logger.debug(f"Added '{len(messages)}' messages to broadcast task '{task_id}'")
+        return self._convert_to_dto_messages_list(db_messages)
 
     async def update_message_status(
         self,
@@ -104,11 +112,20 @@ class BroadcastDaoImpl(BroadcastDao):
             f"Message status for user '{telegram_id}' in task '{task_id}' updated to '{status}'"
         )
 
-    async def increment_stats(self, task_id: UUID, success: bool = True) -> None:
-        field = Broadcast.success_count if success else Broadcast.failed_count
-        stmt = update(Broadcast).where(Broadcast.task_id == task_id).values({field: field + 1})
+    async def update_stats(self, task_id: UUID, success_count: int, failed_count: int) -> None:
+        stmt = (
+            update(Broadcast)
+            .where(Broadcast.task_id == task_id)
+            .values(
+                success_count=Broadcast.success_count + success_count,
+                failed_count=Broadcast.failed_count + failed_count,
+            )
+        )
         await self.session.execute(stmt)
-        logger.debug(f"Incremented stats for task '{task_id}': success='{success}'")
+        logger.debug(
+            f"Incremented stats for task '{task_id}': "
+            f"success={success_count}, failed={failed_count}"
+        )
 
     async def get_active(self) -> list[BroadcastDto]:
         stmt = select(Broadcast).where(Broadcast.status == BroadcastStatus.PROCESSING)

@@ -17,13 +17,14 @@ from src.telegram.keyboards import get_goto_buttons
 async def plans_getter(
     dialog_manager: DialogManager,
     plan_dao: FromDishka[PlanDao],
+    i18n: FromDishka[TranslatorRunner],
     **kwargs: Any,
 ) -> dict[str, Any]:
     plans: list[PlanDto] = await plan_dao.get_all()
     formatted_plans = [
         {
             "id": plan.id,
-            "name": plan.name,
+            "name": i18n.get(plan.name),
             "is_active": plan.is_active,
         }
         for plan in plans

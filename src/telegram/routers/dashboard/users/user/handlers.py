@@ -182,7 +182,6 @@ async def on_device_delete(
     dialog_manager: DialogManager,
     delete_user_device: FromDishka[DeleteUserDevice],
 ) -> None:
-    await dialog_manager.load_data()
     selected_short_hwid = dialog_manager.item_id  # type: ignore[attr-defined]
     hwid_map: list[dict] = dialog_manager.dialog_data.get("hwid_map")  # type: ignore[assignment]
 

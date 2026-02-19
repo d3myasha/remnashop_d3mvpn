@@ -4,7 +4,6 @@ from adaptix import Retort
 from aiogram_dialog import DialogManager
 from dishka import FromDishka
 from dishka.integrations.aiogram_dialog import inject
-from fluentogram.exceptions import KeyNotFoundError
 
 from src.application.common import TranslatorRunner
 from src.application.common.dao import SettingsDao
@@ -25,11 +24,7 @@ async def menu_editor_getter(
     dialog_manager.dialog_data["buttons"] = buttons
 
     for button in buttons:
-        try:
-            translated_text = i18n.get(button["text"])
-        except KeyNotFoundError:
-            translated_text = button["text"]
-        button["text"] = translated_text
+        button["text"] = i18n.get(button["text"])
     return {"buttons": buttons}
 
 
@@ -40,11 +35,7 @@ async def button_getter(
     **kwargs: Any,
 ) -> dict[str, Any]:
     button = dialog_manager.dialog_data["button"]
-    try:
-        translated_text = i18n.get(button["text"])
-    except KeyNotFoundError:
-        translated_text = button["text"]
-    button["text"] = translated_text
+    button["text"] = i18n.get(button["text"])
     return {**button}
 
 

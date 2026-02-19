@@ -72,7 +72,6 @@ async def on_role_revoke(
     redirect: FromDishka[Redirect],
     revoke_role: FromDishka[RevokeRole],
 ) -> None:
-    await dialog_manager.load_data()
     user: UserDto = dialog_manager.middleware_data[USER_KEY]
     target_telegram_id = int(dialog_manager.item_id)  # type: ignore[attr-defined]
 

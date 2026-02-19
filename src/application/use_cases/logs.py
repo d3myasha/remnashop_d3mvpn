@@ -28,13 +28,13 @@ class GetLogs(Interactor[None, GetLogsResultDto]):
     async def _execute(self, actor: UserDto, data: None) -> GetLogsResultDto:
         if not self.config.log.to_file:
             logger.warning(f"User '{actor.telegram_id}' requested logs, but to_file is disabled")
-            raise LogsToFileDisabledError
+            raise LogsToFileDisabledError()
 
         log_path = LOG_DIR / LOG_FILENAME
 
         if not log_path.exists():
             logger.error(f"Log file not found at '{log_path}'")
-            raise FileNotFoundError
+            raise FileNotFoundError()
 
         timestamp = datetime_now().strftime("%Y-%m-%d_%H-%M-%S")
         display_name = f"{timestamp}.log"

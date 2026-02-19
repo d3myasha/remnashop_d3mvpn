@@ -208,18 +208,18 @@ class RevokeRole(Interactor[int, None]):
 
             if actor.telegram_id == target_user.telegram_id:
                 logger.warning(f"User '{actor.telegram_id}' tried to revoke their own role")
-                raise PermissionDeniedError
+                raise PermissionDeniedError()
 
             if not actor.role > target_user.role:
                 logger.warning(
                     f"User '{actor.telegram_id}' ({actor.role}) tried to revoke role "
                     f"from '{target_user.telegram_id}' ({target_user.role})"
                 )
-                raise PermissionDeniedError
+                raise PermissionDeniedError()
 
             if target_user.role == Role.OWNER:
                 logger.warning(f"Attempt to revoke role from OWNER '{telegram_id}' blocked")
-                raise PermissionDeniedError
+                raise PermissionDeniedError()
 
             target_user.role = Role.USER
             await self.user_dao.update(target_user)

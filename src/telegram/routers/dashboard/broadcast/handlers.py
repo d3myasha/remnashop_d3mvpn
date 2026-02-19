@@ -196,7 +196,6 @@ async def on_button_select(
     i18n: FromDishka[TranslatorRunner],
     settings_dao: FromDishka[SettingsDao],
 ) -> None:
-    await dialog_manager.load_data()
     user: UserDto = dialog_manager.middleware_data[USER_KEY]
     selected_id = int(dialog_manager.item_id)  # type: ignore[attr-defined]
 
@@ -263,7 +262,7 @@ async def on_send(
     if not audience:
         raise ValueError("BroadcastAudience not found in dialog data")
 
-    if is_double_click(dialog_manager, key="broadcast_confirm", cooldown=10):
+    if is_double_click(dialog_manager, key="broadcast_confirm", cooldown=5):
         task_id = await start_broadcast(user, StartBroadcastDto(audience, payload, plan_id))
         dialog_manager.dialog_data["task_id"] = task_id
         await dialog_manager.switch_to(state=DashboardBroadcast.VIEW)

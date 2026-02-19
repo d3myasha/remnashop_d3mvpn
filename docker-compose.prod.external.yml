@@ -98,8 +98,7 @@ services:
 
     command: >
         taskiq worker src.infrastructure.taskiq.worker:worker 
-        --tasks-pattern src/infrastructure/taskiq/tasks 
-        -fsd
+        --ack-type when_received --tasks-pattern src/infrastructure/taskiq/tasks/*.py -fsd
 
     depends_on:
         remnashop-redis:
@@ -115,8 +114,7 @@ services:
 
     command: >
         taskiq scheduler src.infrastructure.taskiq.scheduler:scheduler
-        --tasks-pattern src/infrastructure/taskiq/tasks 
-        -fsd
+        --tasks-pattern src/infrastructure/taskiq/tasks -fsd
 
     depends_on:
         remnashop-redis:

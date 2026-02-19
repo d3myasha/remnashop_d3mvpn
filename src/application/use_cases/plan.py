@@ -132,7 +132,11 @@ class UpdatePlanName(Interactor[UpdatePlanNameDto, PlanDto]):
 
         if existing_plan and existing_plan.id != data.plan.id:
             logger.warning(f"{actor.log} Tried to set duplicate plan name '{data.input_name}'")
-            raise ValueError(f"Plan with name '{data.input_name}' already exists")
+            raise ValueError()
+
+        if len(data.input_name) > 16:
+            logger.warning(f"Plan name '{data.input_name}' exceeds 16 characters")
+            raise ValueError()
 
         data.plan.name = data.input_name
         data.plan.public_code = self.cryptographer.generate_short_code(data.plan.name, length=8)

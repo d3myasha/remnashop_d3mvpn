@@ -32,7 +32,9 @@ async def handle_inline_query(
     user = await user_dao.get_by_telegram_id(inline_query.from_user.id)
 
     if not user:
-        logger.warning("")
+        logger.warning(
+            f"User with Telegram ID '{inline_query.from_user.id}' not found for inline query"
+        )
         return
 
     logger.info(f"{user.log} Sent inline query {INLINE_QUERY_INVITE}")

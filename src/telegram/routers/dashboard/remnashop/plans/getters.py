@@ -8,6 +8,7 @@ from dishka.integrations.aiogram_dialog import inject
 from remnapy import RemnawaveSDK
 from remnapy.enums.users import TrafficLimitStrategy
 
+from src.application.common import TranslatorRunner
 from src.application.common.dao import PlanDao
 from src.application.dto import PlanDto, PlanDurationDto, PlanPriceDto
 from src.application.services import BotService
@@ -18,13 +19,15 @@ from src.core.enums import Currency, PlanAvailability, PlanType
 async def plans_getter(
     dialog_manager: DialogManager,
     plan_dao: FromDishka[PlanDao],
+    i18n: FromDishka[TranslatorRunner],
     **kwargs: Any,
 ) -> dict[str, Any]:
     plans: list[PlanDto] = await plan_dao.get_all()
+
     formatted_plans = [
         {
             "id": plan.id,
-            "name": plan.name,
+            "name": i18n.get(plan.name),
             "is_active": plan.is_active,
         }
         for plan in plans
@@ -40,6 +43,7 @@ async def plans_getter(
 async def export_getter(
     dialog_manager: DialogManager,
     plan_dao: FromDishka[PlanDao],
+    i18n: FromDishka[TranslatorRunner],
     **kwargs: Any,
 ) -> dict[str, Any]:
     plans: list[PlanDto] = await plan_dao.get_all()
@@ -48,7 +52,7 @@ async def export_getter(
     formatted_plans = [
         {
             "id": plan.id,
-            "name": plan.name,
+            "name": i18n.get(plan.name),
             "selected": plan.id in selected_plans,
         }
         for plan in plans
@@ -63,6 +67,7 @@ async def export_getter(
 async def configurator_getter(
     dialog_manager: DialogManager,
     bot_service: FromDishka[BotService],
+    i18n: FromDishka[TranslatorRunner],
     retort: FromDishka[Retort],
     **kwargs: Any,
 ) -> dict[str, Any]:
@@ -110,6 +115,7 @@ async def configurator_getter(
         plan = retort.load(raw_plan, PlanDto)
 
     helpers = {
+        "name": i18n.get(plan.name),
         "is_edit": dialog_manager.dialog_data.get("is_edit", False),
         "is_unlimited_traffic": plan.is_unlimited_traffic,
         "is_unlimited_devices": plan.is_unlimited_devices,

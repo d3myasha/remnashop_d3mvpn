@@ -53,17 +53,17 @@ class YoomoneyGateway(BasePaymentGateway):
             response.raise_for_status()
             return PaymentResultDto(id=payment_id, url=str(response.url))
 
-        except HTTPStatusError as exception:
+        except HTTPStatusError as e:
             logger.error(
                 f"HTTP error creating payment. "
-                f"Status: '{exception.response.status_code}', Body: {exception.response.text}"
+                f"Status: '{e.response.status_code}', Body: {e.response.text}"
             )
             raise
-        except (KeyError, orjson.JSONDecodeError) as exception:
-            logger.error(f"Failed to parse response. Error: {exception}")
+        except (KeyError, orjson.JSONDecodeError) as e:
+            logger.error(f"Failed to parse response. Error: {e}")
             raise
-        except Exception as exception:
-            logger.exception(f"An unexpected error occurred while creating payment: {exception}")
+        except Exception as e:
+            logger.exception(f"An unexpected error occurred while creating payment: {e}")
             raise
 
     async def handle_webhook(self, request: Request) -> tuple[UUID, TransactionStatus]:
@@ -95,9 +95,9 @@ class YoomoneyGateway(BasePaymentGateway):
             data = {k: v[0] for k, v in parsed.items()}
             logger.debug(f"Webhook data: {data}")
             return data
-        except Exception as exception:
-            logger.error(f"Failed to parse webhook payload: {exception}")
-            raise ValueError("Invalid webhook payload") from exception
+        except Exception as e:
+            logger.error(f"Failed to parse webhook payload: {e}")
+            raise ValueError("Invalid webhook payload") from e
 
     async def _create_payment_payload(
         self,

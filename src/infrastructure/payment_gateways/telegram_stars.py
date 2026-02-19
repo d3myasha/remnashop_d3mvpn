@@ -28,9 +28,9 @@ class TelegramStarsGateway(BasePaymentGateway):
 
             return PaymentResultDto(id=payment_id, url=payment_url)
 
-        except Exception as exception:
-            logger.exception(f"An unexpected error occurred while creating payment: {exception}")
+        except Exception as e:
+            logger.exception(f"An unexpected error occurred while creating payment: {e}")
             raise
 
     async def handle_webhook(self, request: Request) -> tuple[UUID, TransactionStatus]:
-        raise NotImplementedError
+        raise NotImplementedError()

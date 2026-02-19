@@ -31,6 +31,33 @@ from src.core.enums import Currency, PaymentGatewayType, PurchaseType, Transacti
 from src.core.exceptions import GatewayNotConfiguredError
 from src.core.utils.i18n_helpers import i18n_format_days
 from src.infrastructure.payment_gateways import PaymentGatewayFactory
+from src.infrastructure.payment_gateways.base import BasePaymentGateway
+
+
+class GetPaymentGatewayInstance(Interactor[PaymentGatewayType, BasePaymentGateway]):
+    required_permission = None
+
+    def __init__(
+        self,
+        uow: UnitOfWork,
+        payment_gateway_dao: PaymentGatewayDao,
+        gateway_factory: PaymentGatewayFactory,
+    ) -> None:
+        self.uow = uow
+        self.payment_gateway_dao = payment_gateway_dao
+        self.gateway_factory = gateway_factory
+
+    async def _execute(
+        self,
+        actor: UserDto,
+        gateway_type: PaymentGatewayType,
+    ) -> BasePaymentGateway:
+        gateway = await self.payment_gateway_dao.get_by_type(gateway_type)
+
+        if not gateway:
+            raise ValueError(f"Payment gateway of type '{gateway_type}' not found")
+
+        return self.gateway_factory(gateway)
 
 
 class MovePaymentGatewayUp(Interactor[int, None]):
@@ -191,6 +218,8 @@ class CreatePaymentDto:
 
 
 class CreatePayment(Interactor[CreatePaymentDto, PaymentResultDto]):
+    required_permission = None
+
     def __init__(
         self,
         uow: UnitOfWork,
@@ -256,6 +285,8 @@ class CreatePayment(Interactor[CreatePaymentDto, PaymentResultDto]):
 
 
 class CreateTestPayment(Interactor[PaymentGatewayType, PaymentResultDto]):
+    required_permission = None
+
     def __init__(
         self,
         uow: UnitOfWork,
@@ -382,6 +413,7 @@ class CreateTestPayment(Interactor[PaymentGatewayType, PaymentResultDto]):
 #         }[p_type]
 
 GATEWAYS_USE_CASES: Final[tuple[type[Interactor], ...]] = (
+    GetPaymentGatewayInstance,
     MovePaymentGatewayUp,
     TogglePaymentGatewayActive,
     UpdatePaymentGatewaySettings,

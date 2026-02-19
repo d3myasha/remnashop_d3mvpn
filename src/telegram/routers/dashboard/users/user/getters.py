@@ -391,6 +391,7 @@ async def transaction_getter(
 async def give_access_getter(
     dialog_manager: DialogManager,
     plan_dao: FromDishka[PlanDao],
+    i18n: FromDishka[TranslatorRunner],
     **kwargs: Any,
 ) -> dict[str, Any]:
     target_telegram_id = dialog_manager.dialog_data[TARGET_TELEGRAM_ID]
@@ -401,7 +402,7 @@ async def give_access_getter(
 
     formatted_plans = [
         {
-            "plan_name": plan.name,
+            "plan_name": i18n.get(plan.name),
             "plan_id": plan.id,
             "selected": True if target_telegram_id in plan.allowed_user_ids else False,
         }
@@ -415,6 +416,7 @@ async def give_access_getter(
 async def give_subscription_getter(
     dialog_manager: DialogManager,
     user_dao: FromDishka[UserDao],
+    i18n: FromDishka[TranslatorRunner],
     get_available_plans: FromDishka[GetAvailablePlans],
     **kwargs: Any,
 ) -> dict[str, Any]:
@@ -431,7 +433,7 @@ async def give_subscription_getter(
 
     formatted_plans = [
         {
-            "plan_name": plan.name,
+            "plan_name": i18n.get(plan.name),
             "plan_id": plan.id,
         }
         for plan in plans

@@ -25,8 +25,8 @@ class UpdateMenuButtonText(Interactor[UpdateMenuButtonTextDto, MenuButtonDto]):
         button = data.button
         new_text = data.input_text.strip()
 
-        if len(new_text) > 32:
-            raise ValueError("")
+        if len(new_text) > 16:
+            raise ValueError(f"Menu button text '{new_text}' exceeds 16 characters")
 
         old_text = button.text
         button.text = new_text
@@ -54,7 +54,7 @@ class UpdateMenuButtonPayload(Interactor[UpdateMenuButtonPayloadDto, MenuButtonD
 
         if button.type == ButtonType.URL:
             if not re.compile(r"^https://.*$").match(new_payload):
-                raise ValueError("")
+                raise ValueError(f"Invalid URL format for payload '{new_payload}'")
 
         old_payload = button.payload
         button.payload = new_payload
